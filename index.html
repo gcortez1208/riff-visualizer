@@ -2,43 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Riff Visualizer - From Womb to Waste</title>
+  <title>Riff Visualizer - Rocksmith Style</title>
   <style>
     body {
-      background-color: #111;
+      background-color: #000;
       color: #fff;
       font-family: 'Courier New', Courier, monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      overflow-x: hidden;
     }
 
     h1 {
       margin-bottom: 20px;
     }
 
-    .fretboard {
-      display: grid;
-      grid-template-columns: repeat(16, 40px);
-      gap: 2px;
-    }
-
-    .fret {
-      width: 40px;
-      height: 30px;
-      background: #333;
-      border: 1px solid #555;
+    .note-track {
+      position: relative;
+      width: 100vw;
+      height: 240px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 12px;
+      justify-content: flex-start;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #111, #222);
     }
 
-    .active {
-      background: lime;
+    .string-line {
+      position: absolute;
+      height: 1px;
+      width: 100%;
+      background: #555;
+    }
+
+    .note {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background-color: lime;
       color: black;
+      border-radius: 50%;
       font-weight: bold;
+      text-align: center;
+      line-height: 30px;
+      font-size: 14px;
     }
 
     button, select {
@@ -58,8 +67,17 @@
   </style>
 </head>
 <body>
-  <h1>Guitar Riff Visualizer (Drop C)</h1>
-  <div class="fretboard" id="fretboard"></div>
+  <h1>🎸 Rocksmith Style Riff Visualizer (Drop C)</h1>
+  <div class="note-track" id="noteTrack">
+    <!-- string lines -->
+    <div class="string-line" style="top: 20px;"></div>
+    <div class="string-line" style="top: 60px;"></div>
+    <div class="string-line" style="top: 100px;"></div>
+    <div class="string-line" style="top: 140px;"></div>
+    <div class="string-line" style="top: 180px;"></div>
+    <div class="string-line" style="top: 220px;"></div>
+  </div>
+
   <select id="riffSelector">
     <option value="womb">From Womb to Waste - Intro</option>
     <option value="custom1">Brutal Custom Riff</option>
@@ -69,20 +87,13 @@
   <button onclick="toggleLoop()">Loop</button>
 
   <script>
-    const strings = 6;
-    const frets = 16;
-    const fretboard = document.getElementById("fretboard");
+    const track = document.getElementById("noteTrack");
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const noteAudio = new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3");
+    let isLooping = false;
+    let playTimeouts = [];
 
-    for (let s = 0; s < strings; s++) {
-      for (let f = 0; f < frets; f++) {
-        const fret = document.createElement("div");
-        fret.classList.add("fret");
-        fret.dataset.string = s;
-        fret.dataset.fret = f;
-        fret.textContent = f;
-        fretboard.appendChild(fret);
-      }
-    }
+    const stringYPositions = [20, 60, 100, 140, 180, 220];
 
     const riffs = {
       womb: [
@@ -105,35 +116,50 @@
       ]
     };
 
-    const context = new (window.AudioContext || window.webkitAudioContext)();
-    const noteAudio = new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3");
-
-    let isLooping = false;
-    let playTimeouts = [];
-
     function playSample(fret) {
       const audio = noteAudio.cloneNode();
       audio.playbackRate = 1 + fret * 0.03;
       audio.play();
     }
 
-    function playRiff(riff) {
-      stopRiff();
-      riff.forEach(([string, fret, delay]) => {
-        const timeout = setTimeout(() => {
-          const selector = `.fret[data-string="${string}"][data-fret="${fret}"]`;
-          const el = document.querySelector(selector);
-          el.classList.add("active");
-          playSample(fret);
-          setTimeout(() => el.classList.remove("active"), 200);
-        }, delay);
-        playTimeouts.push(timeout);
-      });
-    }
-
     function stopRiff() {
       playTimeouts.forEach(clearTimeout);
       playTimeouts = [];
+      track.querySelectorAll('.note').forEach(n => n.remove());
+    }
+
+    function animateNote(string, fret, delay) {
+      const note = document.createElement('div');
+      note.classList.add('note');
+      note.style.top = `${stringYPositions[string]}px`;
+      note.textContent = fret;
+      note.style.left = '100vw';
+      track.appendChild(note);
+
+      const duration = 3000;
+      const start = performance.now() + delay;
+
+      const animate = (time) => {
+        const elapsed = time - start;
+        const x = Math.max(0, 100 - (elapsed / duration) * 100);
+        note.style.left = `${x}vw`;
+        if (x > 0) {
+          requestAnimationFrame(animate);
+        } else {
+          playSample(fret);
+          note.remove();
+        }
+      };
+
+      setTimeout(() => requestAnimationFrame(animate), delay);
+    }
+
+    function playRiff(riff) {
+      stopRiff();
+      riff.forEach(([string, fret, delay]) => {
+        const timeout = setTimeout(() => animateNote(string, fret, 0), delay);
+        playTimeouts.push(timeout);
+      });
     }
 
     function startRiff() {
@@ -148,7 +174,7 @@
       if (isLooping) {
         function loop() {
           playRiff(riff);
-          if (isLooping) setTimeout(loop, riff[riff.length - 1][2] + 500);
+          if (isLooping) setTimeout(loop, riff[riff.length - 1][2] + 4000);
         }
         loop();
       } else {
