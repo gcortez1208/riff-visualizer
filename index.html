@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Riff Visualizer - From Womb to Waste</title>
+  <style>
+    body {
+      background-color: #111;
+      color: #fff;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .fretboard {
+      display: grid;
+      grid-template-columns: repeat(16, 40px);
+      gap: 2px;
+    }
+
+    .string {
+      display: contents;
+    }
+
+    .fret {
+      width: 40px;
+      height: 30px;
+      background: #333;
+      border: 1px solid #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .active {
+      background: lime;
+      color: black;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #444;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>From Womb to Waste - Intro Riff (Drop C)</h1>
+  <div class="fretboard" id="fretboard"></div>
+  <button onclick="playRiff()">Play Riff</button>
+
+  <script>
+    const strings = 6;
+    const frets = 16;
+    const fretboard = document.getElementById("fretboard");
+
+    // Build fretboard
+    for (let s = 0; s < strings; s++) {
+      for (let f = 0; f < frets; f++) {
+        const fret = document.createElement("div");
+        fret.classList.add("fret");
+        fret.dataset.string = s;
+        fret.dataset.fret = f;
+        fretboard.appendChild(fret);
+      }
+    }
+
+    // Sample riff notes: [string (0 = low C), fret, time offset ms]
+    const riff = [
+      [0, 0, 0],
+      [0, 1, 400],
+      [0, 3, 800],
+      [1, 3, 1200],
+      [0, 0, 1600],
+      [0, 1, 1900],
+      [0, 3, 2200]
+    ];
+
+    function playRiff() {
+      riff.forEach(([string, fret, delay]) => {
+        setTimeout(() => {
+          const selector = `.fret[data-string="${string}"][data-fret="${fret}"]`;
+          const el = document.querySelector(selector);
+          el.classList.add("active");
+          setTimeout(() => el.classList.remove("active"), 200);
+        }, delay);
+      });
+    }
+  </script>
+</body>
+</html>
