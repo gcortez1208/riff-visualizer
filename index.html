@@ -36,6 +36,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 12px;
     }
 
     .active {
@@ -77,6 +78,7 @@
         fret.classList.add("fret");
         fret.dataset.string = s;
         fret.dataset.fret = f;
+        fret.textContent = f; // Label each fret
         fretboard.appendChild(fret);
       }
     }
@@ -92,12 +94,28 @@
       [0, 3, 2200]
     ];
 
+    // Load basic beep sound using Web Audio API
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(frequency = 120, duration = 0.2) {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      oscillator.start();
+      oscillator.stop(context.currentTime + duration);
+    }
+
     function playRiff() {
       riff.forEach(([string, fret, delay]) => {
         setTimeout(() => {
           const selector = `.fret[data-string="${string}"][data-fret="${fret}"]`;
           const el = document.querySelector(selector);
           el.classList.add("active");
+          playBeep(120 + fret * 15); // Simulated tone per fret
           setTimeout(() => el.classList.remove("active"), 200);
         }, delay);
       });
