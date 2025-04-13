@@ -24,10 +24,6 @@
       gap: 2px;
     }
 
-    .string {
-      display: contents;
-    }
-
     .fret {
       width: 40px;
       height: 30px;
@@ -45,8 +41,8 @@
       font-weight: bold;
     }
 
-    button {
-      margin-top: 20px;
+    button, select {
+      margin: 10px;
       padding: 10px 20px;
       font-size: 16px;
       background: #444;
@@ -56,69 +52,88 @@
       cursor: pointer;
     }
 
-    button:hover {
+    button:hover, select:hover {
       background: #666;
     }
   </style>
 </head>
 <body>
-  <h1>From Womb to Waste - Intro Riff (Drop C)</h1>
+  <h1>Guitar Riff Visualizer (Drop C)</h1>
   <div class="fretboard" id="fretboard"></div>
+  <select id="riffSelector">
+    <option value="womb">From Womb to Waste - Intro</option>
+    <option value="custom1">Brutal Custom Riff</option>
+    <option value="custom2">Groove Slayer Riff</option>
+  </select>
   <button onclick="playRiff()">Play Riff</button>
+  <button onclick="loopRiff()">Loop</button>
 
   <script>
     const strings = 6;
     const frets = 16;
     const fretboard = document.getElementById("fretboard");
 
-    // Build fretboard
     for (let s = 0; s < strings; s++) {
       for (let f = 0; f < frets; f++) {
         const fret = document.createElement("div");
         fret.classList.add("fret");
         fret.dataset.string = s;
         fret.dataset.fret = f;
-        fret.textContent = f; // Label each fret
+        fret.textContent = f;
         fretboard.appendChild(fret);
       }
     }
 
-    // Sample riff notes: [string (0 = low C), fret, time offset ms]
-    const riff = [
-      [0, 0, 0],
-      [0, 1, 400],
-      [0, 3, 800],
-      [1, 3, 1200],
-      [0, 0, 1600],
-      [0, 1, 1900],
-      [0, 3, 2200]
-    ];
+    const riffs = {
+      womb: [
+        [0, 0, 0], [0, 1, 400], [0, 3, 800],
+        [1, 3, 1200], [0, 0, 1600], [0, 1, 1900], [0, 3, 2200]
+      ],
+      custom1: [
+        [0, 5, 0], [1, 7, 400], [2, 5, 800], [1, 6, 1200],
+        [0, 4, 1600], [0, 5, 2000], [1, 7, 2400]
+      ],
+      custom2: [
+        [0, 3, 0], [0, 6, 350], [1, 3, 700], [2, 6, 1050],
+        [3, 5, 1400], [1, 3, 1700], [0, 0, 2000]
+      ]
+    };
 
-    // Load basic beep sound using Web Audio API
     const context = new (window.AudioContext || window.webkitAudioContext)();
-    function playBeep(frequency = 120, duration = 0.2) {
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
+    let isLooping = false;
+    const noteAudio = new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3");
 
-      oscillator.type = 'square';
-      oscillator.frequency.setValueAtTime(frequency, context.currentTime);
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-
-      oscillator.start();
-      oscillator.stop(context.currentTime + duration);
+    function playSample(fret) {
+      const audio = noteAudio.cloneNode();
+      audio.playbackRate = 1 + fret * 0.03;
+      audio.play();
     }
 
     function playRiff() {
+      const selected = document.getElementById("riffSelector").value;
+      const riff = riffs[selected];
       riff.forEach(([string, fret, delay]) => {
         setTimeout(() => {
           const selector = `.fret[data-string="${string}"][data-fret="${fret}"]`;
           const el = document.querySelector(selector);
           el.classList.add("active");
-          playBeep(120 + fret * 15); // Simulated tone per fret
+          playSample(fret);
           setTimeout(() => el.classList.remove("active"), 200);
         }, delay);
       });
+    }
+
+    function loopRiff() {
+      isLooping = !isLooping;
+      const selected = document.getElementById("riffSelector").value;
+      const riff = riffs[selected];
+      if (isLooping) {
+        function loop() {
+          playRiff();
+          if (isLooping) setTimeout(loop, riff[riff.length - 1][2] + 500);
+        }
+        loop();
+      }
     }
   </script>
 </body>
