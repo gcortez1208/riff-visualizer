@@ -65,8 +65,8 @@
     <option value="custom1">Brutal Custom Riff</option>
     <option value="custom2">Groove Slayer Riff</option>
   </select>
-  <button onclick="playRiff()">Play Riff</button>
-  <button onclick="loopRiff()">Loop</button>
+  <button onclick="startRiff()">Play Riff</button>
+  <button onclick="toggleLoop()">Loop</button>
 
   <script>
     const strings = 6;
@@ -86,8 +86,14 @@
 
     const riffs = {
       womb: [
-        [0, 0, 0], [0, 1, 400], [0, 3, 800],
-        [1, 3, 1200], [0, 0, 1600], [0, 1, 1900], [0, 3, 2200]
+        [0, 2, 0], [0, 3, 300], [1, 2, 600], [1, 3, 900],
+        [0, 5, 1200], [1, 3, 1500], [0, 4, 1800], [1, 2, 2100],
+        [0, 5, 2400], [1, 3, 2700], [0, 8, 3000], [1, 6, 3300],
+        [0, 7, 3600], [1, 5, 3900], [0, 5, 4200], [1, 3, 4500],
+        [0, 7, 4800], [1, 5, 5100], [0, 5, 5400], [1, 3, 5700],
+        [0, 4, 6000], [1, 2, 6300], [0, 5, 6600], [1, 3, 6900],
+        [0, 8, 7200], [1, 6, 7500], [0, 7, 7800], [1, 5, 8100],
+        [0, 5, 8400], [1, 3, 8700], [0, 7, 9000], [1, 5, 9300]
       ],
       custom1: [
         [0, 5, 0], [1, 7, 400], [2, 5, 800], [1, 6, 1200],
@@ -100,8 +106,10 @@
     };
 
     const context = new (window.AudioContext || window.webkitAudioContext)();
-    let isLooping = false;
     const noteAudio = new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3");
+
+    let isLooping = false;
+    let playTimeouts = [];
 
     function playSample(fret) {
       const audio = noteAudio.cloneNode();
@@ -109,30 +117,42 @@
       audio.play();
     }
 
-    function playRiff() {
-      const selected = document.getElementById("riffSelector").value;
-      const riff = riffs[selected];
+    function playRiff(riff) {
+      stopRiff();
       riff.forEach(([string, fret, delay]) => {
-        setTimeout(() => {
+        const timeout = setTimeout(() => {
           const selector = `.fret[data-string="${string}"][data-fret="${fret}"]`;
           const el = document.querySelector(selector);
           el.classList.add("active");
           playSample(fret);
           setTimeout(() => el.classList.remove("active"), 200);
         }, delay);
+        playTimeouts.push(timeout);
       });
     }
 
-    function loopRiff() {
+    function stopRiff() {
+      playTimeouts.forEach(clearTimeout);
+      playTimeouts = [];
+    }
+
+    function startRiff() {
+      const selected = document.getElementById("riffSelector").value;
+      playRiff(riffs[selected]);
+    }
+
+    function toggleLoop() {
       isLooping = !isLooping;
       const selected = document.getElementById("riffSelector").value;
       const riff = riffs[selected];
       if (isLooping) {
         function loop() {
-          playRiff();
+          playRiff(riff);
           if (isLooping) setTimeout(loop, riff[riff.length - 1][2] + 500);
         }
         loop();
+      } else {
+        stopRiff();
       }
     }
   </script>
