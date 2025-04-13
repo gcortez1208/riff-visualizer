@@ -69,7 +69,6 @@
 <body>
   <h1>🎸 Rocksmith Style Riff Visualizer (Drop C)</h1>
   <div class="note-track" id="noteTrack">
-    <!-- string lines -->
     <div class="string-line" style="top: 20px;"></div>
     <div class="string-line" style="top: 60px;"></div>
     <div class="string-line" style="top: 100px;"></div>
@@ -86,12 +85,35 @@
   <button onclick="startRiff()">Play Riff</button>
   <button onclick="toggleLoop()">Loop</button>
 
+  <audio id="backingTrack" src="https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/John_Bartmann/Heavy_Rock/John_Bartmann_-_02_-_Heavy_Rock.mp3" preload="auto"></audio>
+
   <script>
     const track = document.getElementById("noteTrack");
-    const context = new (window.AudioContext || window.webkitAudioContext)();
-    const noteAudio = new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3");
+    const backingTrack = document.getElementById("backingTrack");
     let isLooping = false;
     let playTimeouts = [];
+
+    const samples = {
+      clean: [
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/C3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/D3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/E3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/F3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/G3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/A3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/B3.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/C4.mp3',
+        'https://cdn.jsdelivr.net/gh/jshaw/guitar-notes/D4.mp3'
+      ],
+      palm: [
+        'https://cdn.freesound.org/previews/478/478669_10258080-lq.mp3',
+        'https://cdn.freesound.org/previews/478/478670_10258080-lq.mp3',
+        'https://cdn.freesound.org/previews/478/478671_10258080-lq.mp3',
+        'https://cdn.freesound.org/previews/478/478672_10258080-lq.mp3',
+        'https://cdn.freesound.org/previews/478/478673_10258080-lq.mp3',
+        'https://cdn.freesound.org/previews/478/478674_10258080-lq.mp3'
+      ]
+    };
 
     const stringYPositions = [20, 60, 100, 140, 180, 220];
 
@@ -116,9 +138,10 @@
       ]
     };
 
-    function playSample(fret) {
-      const audio = noteAudio.cloneNode();
-      audio.playbackRate = 1 + fret * 0.03;
+    function playSample(fret, isPalmMuted = false) {
+      const sampleArray = isPalmMuted ? samples.palm : samples.clean;
+      const url = sampleArray[fret % sampleArray.length];
+      const audio = new Audio(url);
       audio.play();
     }
 
@@ -126,9 +149,11 @@
       playTimeouts.forEach(clearTimeout);
       playTimeouts = [];
       track.querySelectorAll('.note').forEach(n => n.remove());
+      backingTrack.pause();
+      backingTrack.currentTime = 0;
     }
 
-    function animateNote(string, fret, delay) {
+    function animateNote(string, fret, delay, isPalmMuted = false) {
       const note = document.createElement('div');
       note.classList.add('note');
       note.style.top = `${stringYPositions[string]}px`;
@@ -146,7 +171,7 @@
         if (x > 0) {
           requestAnimationFrame(animate);
         } else {
-          playSample(fret);
+          playSample(fret, isPalmMuted);
           note.remove();
         }
       };
@@ -156,8 +181,9 @@
 
     function playRiff(riff) {
       stopRiff();
+      backingTrack.play();
       riff.forEach(([string, fret, delay]) => {
-        const timeout = setTimeout(() => animateNote(string, fret, 0), delay);
+        const timeout = setTimeout(() => animateNote(string, fret, 0, fret <= 2), delay);
         playTimeouts.push(timeout);
       });
     }
